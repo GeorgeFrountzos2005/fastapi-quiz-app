@@ -5,3 +5,4 @@ databases
 asyncpg
 psycopg2-binary
 passlib[bcrypt]
+python-multipart

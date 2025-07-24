@@ -1,19 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends, Form
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import Table, Column, Integer, String
-from database import metadata, engine
-from fastapi import FastAPI, HTTPException, Depends, Request, Form
 from sqlalchemy.orm import Session
-from database import SessionLocal
 from passlib.context import CryptContext
+import os
+
+from database import metadata, engine, SessionLocal
+
 app = FastAPI()
 
-@app.get("/api/hello")
-async def hello():
-    return {"message": "Hello, world!"}
+# 1. Serve your frontend from "/"
+app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
 
-app.mount("/static", StaticFiles(directory="frontend", html=True), name="static")
-
+# 2. Define your users table (for SQLAlchemy)
 users = Table(
     "users",
     metadata,
@@ -22,10 +21,8 @@ users = Table(
     Column("hashed_password", String),
     Column("score", Integer, default=0)
 )
-
 metadata.create_all(bind=engine)
 
-app = FastAPI()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_db():
@@ -34,6 +31,10 @@ def get_db():
         yield db
     finally:
         db.close()
+
+@app.get("/api/hello")
+async def hello():
+    return {"message": "Hello, world!"}
 
 @app.post("/api/register")
 async def register(
@@ -60,8 +61,7 @@ async def login(
         raise HTTPException(status_code=401, detail="Invalid username or password")
     return {"message": "Login successful", "username": username}
 
-import os
-
+# Only for local testing. Railway will use your "Start Command".
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

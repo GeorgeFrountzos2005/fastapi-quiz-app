@@ -12,7 +12,7 @@ app = FastAPI()
 async def hello():
     return {"message": "Hello, world!"}
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+app.mount("/static", StaticFiles(directory="frontend", html=True), name="static")
 
 users = Table(
     "users",
@@ -59,3 +59,14 @@ async def login(
     if not user or not pwd_context.verify(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     return {"message": "Login successful", "username": username}
+
+import os
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8080)),
+        reload=False
+    )

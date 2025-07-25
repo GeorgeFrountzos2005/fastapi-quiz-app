@@ -15,7 +15,7 @@ app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
 
 
 @app.get("/")
-def read_index():
+async def root():
     return FileResponse("frontend/index.html")
 
 # 2. Define your users table (for SQLAlchemy)

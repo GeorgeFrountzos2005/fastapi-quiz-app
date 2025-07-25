@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Form
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy import Table, Column, Integer, String
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
@@ -11,6 +12,11 @@ app = FastAPI()
 
 # 1. Serve your frontend from "/"
 app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+
+
+@app.get("/")
+def read_index():
+    return FileResponse("frontend/index.html")
 
 # 2. Define your users table (for SQLAlchemy)
 users = Table(

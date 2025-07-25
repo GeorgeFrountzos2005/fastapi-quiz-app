@@ -10,12 +10,12 @@ from database import metadata, engine, SessionLocal
 
 app = FastAPI()
 
-# 1. Serve your frontend from "/"
-app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+# Mount static files at /static
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
-
+# Serve your index.html for the root path
 @app.get("/")
-async def root():
+async def serve_index():
     return FileResponse("frontend/index.html")
 
 # 2. Define your users table (for SQLAlchemy)

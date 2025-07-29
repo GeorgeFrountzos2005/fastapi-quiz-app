@@ -15,20 +15,31 @@
     <p id="loginResult"></p>
     <a href="register.html">Don’t have an account? Register</a>
     <script>
-    document.querySelector("form").onsubmit = async (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const res = await fetch("/api/login", {
+document.getElementById("submitQuiz").onclick = function() {
+    userAnswers = questions.map((q, idx) => {
+        const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+        return selected ? parseInt(selected.value) : null;
+    });
+    let correct = 0;
+    userAnswers.forEach((ans, idx) => {
+        if(ans === questions[idx].answer) correct++;
+    });
+    document.getElementById("quizResult").innerText = `You got ${correct} out of ${questions.length} correct!`;
+
+    // SEND SCORE TO BACKEND:
+    const username = localStorage.getItem("username");
+    if (username) {
+        fetch("/api/submit_score", {
             method: "POST",
-            body: new FormData(form),
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({username, score: correct})
+        })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById("quizResult").innerText += "\n" + (data.message || "");
         });
-        const data = await res.json();
-        document.getElementById("output").innerText = data.message || data.detail;
-        if (res.ok) {
-            localStorage.setItem("username", form.username.value);
-            setTimeout(()=>window.location='/static/quiz.html', 1000);
-        }
-    };
-    </script>
+    }
+};
+</script>
 </body>
 </html>

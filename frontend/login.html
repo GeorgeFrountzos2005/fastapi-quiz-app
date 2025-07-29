@@ -25,7 +25,10 @@
         });
         const json = await res.json();
         document.getElementById("loginResult").innerText = json.message || json.detail;
-        if (res.ok) setTimeout(()=>window.location='index.html', 1000);
+        if (res.ok) {
+            localStorage.setItem("username", form.username.value);
+            setTimeout(()=>window.location='/static/quiz.html', 1000);
+        }
     }
     </script>
 </body>

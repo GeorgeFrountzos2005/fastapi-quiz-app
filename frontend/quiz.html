@@ -42,7 +42,22 @@
             if(ans === questions[idx].answer) correct++;
         });
         document.getElementById("quizResult").innerText = `You got ${correct} out of ${questions.length} correct!`;
-        // TODO: Send score to backend here
+
+
+        const username = localStorage.getItem("username");
+        if (username) {
+            fetch("/api/submit_score", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({username, score: correct})
+            })
+            .then(r => r.json())
+            .then(data => {
+                // Optionally, show backend response:
+                document.getElementById("quizResult").innerText += "\n" + (data.message || "");
+            });
+        }
+
     }
 
     renderQuiz();

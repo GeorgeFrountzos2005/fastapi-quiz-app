@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h2>Quiz Time!</h2>
+    <div id="quizContainer"></div>
+    <button id="submitQuiz" style="display:none;">Submit Quiz</button>
+    <p id="quizResult"></p>
+    <script>
+    // Example quiz questions (replace these with API data later)
+    const questions = [
+        { q: "What is 2 + 2?", choices: ["3", "4", "5"], answer: 1 },
+        { q: "What is the capital of France?", choices: ["London", "Berlin", "Paris"], answer: 2 }
+    ];
+    let userAnswers = [];
+
+    function renderQuiz() {
+        const container = document.getElementById("quizContainer");
+        container.innerHTML = "";
+        questions.forEach((q, idx) => {
+            let html = `<div><strong>Q${idx+1}:</strong> ${q.q}<br>`;
+            q.choices.forEach((choice, cidx) => {
+                html += `<label><input type="radio" name="q${idx}" value="${cidx}"> ${choice}</label> `;
+            });
+            html += "</div><br>";
+            container.innerHTML += html;
+        });
+        document.getElementById("submitQuiz").style.display = "block";
+    }
+
+    document.getElementById("submitQuiz").onclick = function() {
+        userAnswers = questions.map((q, idx) => {
+            const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+            return selected ? parseInt(selected.value) : null;
+        });
+        let correct = 0;
+        userAnswers.forEach((ans, idx) => {
+            if(ans === questions[idx].answer) correct++;
+        });
+        document.getElementById("quizResult").innerText = `You got ${correct} out of ${questions.length} correct!`;
+        // TODO: Send score to backend here
+    }
+
+    renderQuiz();
+    </script>
+</body>
+</html>

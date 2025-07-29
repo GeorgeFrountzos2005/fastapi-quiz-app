@@ -15,21 +15,20 @@
     <p id="loginResult"></p>
     <a href="register.html">Don’t have an account? Register</a>
     <script>
-    document.getElementById("loginForm").onsubmit = async function(e) {
+    document.querySelector("form").onsubmit = async (e) => {
         e.preventDefault();
         const form = e.target;
-        const data = new FormData(form);
         const res = await fetch("/api/login", {
             method: "POST",
-            body: data
+            body: new FormData(form),
         });
-        const json = await res.json();
-        document.getElementById("loginResult").innerText = json.message || json.detail;
+        const data = await res.json();
+        document.getElementById("output").innerText = data.message || data.detail;
         if (res.ok) {
             localStorage.setItem("username", form.username.value);
             setTimeout(()=>window.location='/static/quiz.html', 1000);
         }
-    }
+    };
     </script>
 </body>
 </html>

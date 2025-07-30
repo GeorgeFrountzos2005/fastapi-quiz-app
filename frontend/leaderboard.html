@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leaderboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h2>Leaderboard</h2>
+    <table id="leaderboardTable" border="1">
+        <tr><th>Rank</th><th>Username</th><th>Score</th></tr>
+    </table>
+    <a href="/static/quiz.html">Back to Quiz</a>
+    <a href="/static/index.html">Home</a>
+    <script>
+    fetch("/api/leaderboard")
+      .then(r => r.json())
+      .then(data => {
+        let rows = "";
+        data.forEach((user, i) => {
+            rows += `<tr>
+                        <td>${i+1}</td>
+                        <td>${user.username}</td>
+                        <td>${user.score}</td>
+                    </tr>`;
+        });
+        document.getElementById("leaderboardTable").innerHTML += rows;
+      });
+    </script>
+</body>
+</html>

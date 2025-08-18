@@ -2,7 +2,7 @@ from typing import List, Dict
 from fastapi import FastAPI, HTTPException, Depends, Form, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlalchemy import Table, Column, Integer, String, Text,  func
+from sqlalchemy import Table, Column, Integer, String, Text,  select, func
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import os
@@ -45,7 +45,8 @@ metadata.create_all(bind=engine)
 # --- simple auto-seed so you can test immediately (remove later) ---
 def seed_questions_if_empty():
     with SessionLocal() as db:
-        cnt = db.execute(questions.count()).scalar()  # type: ignore
+        result = db.execute(select(func.count()).select_from(questions))
+        cnt = result.scalar() or 0
         if not cnt or cnt == 0:
             seed = [
                 {"question": "What is 2 + 2?", "choices": ["3","4","5","6"], "answer": 1},

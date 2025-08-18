@@ -13,18 +13,21 @@
     <p id="quizResult"></p>
     <a href="/static/leaderboard.html">Leaderboard</a>
     <script>
-    // Example quiz questions (replace these with API data later)
-    const questions = [
-        { q: "What is 2 + 2?", choices: ["3", "4", "5"], answer: 1 },
-        { q: "What is the capital of France?", choices: ["London", "Berlin", "Paris"], answer: 2 }
-    ];
+    let questions = [];
     let userAnswers = [];
+
+    async function loadQuestions() {
+        const res = await fetch("/api/questions");
+        const data = await res.json();
+        questions = data.questions; // [{id, question, choices}]
+        renderQuiz();
+    }
 
     function renderQuiz() {
         const container = document.getElementById("quizContainer");
         container.innerHTML = "";
         questions.forEach((q, idx) => {
-            let html = `<div><strong>Q${idx+1}:</strong> ${q.q}<br>`;
+            let html = `<div><strong>Q${idx+1}:</strong> ${q.question}<br>`;
             q.choices.forEach((choice, cidx) => {
                 html += `<label><input type="radio" name="q${idx}" value="${cidx}"> ${choice}</label> `;
             });
@@ -34,35 +37,37 @@
         document.getElementById("submitQuiz").style.display = "block";
     }
 
-    document.getElementById("submitQuiz").onclick = function() {
+    document.getElementById("submitQuiz").onclick = async function() {
+        // collect answers
         userAnswers = questions.map((q, idx) => {
             const selected = document.querySelector(`input[name="q${idx}"]:checked`);
-            return selected ? parseInt(selected.value) : null;
+            return { id: q.id, choice: selected ? parseInt(selected.value) : -1 };
         });
-        let correct = 0;
-        userAnswers.forEach((ans, idx) => {
-            if(ans === questions[idx].answer) correct++;
-        });
-        document.getElementById("quizResult").innerText = `You got ${correct} out of ${questions.length} correct!`;
-
 
         const username = localStorage.getItem("username");
-        if (username) {
-            fetch("/api/submit_score", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({username, score: correct})
-            })
-            .then(r => r.json())
-            .then(data => {
-                // Optionally, show backend response:
-                document.getElementById("quizResult").innerText += "\n" + (data.message || "");
-            });
+        if (!username) {
+            document.getElementById("quizResult").innerText = "You must be logged in.";
+            return;
         }
 
-    }
+        // POST to /api/grade (server checks answers & saves best score)
+        const res = await fetch("/api/grade", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ username, answers: userAnswers })
+        });
+        const result = await res.json();
+        if (res.ok) {
+            document.getElementById("quizResult").innerText =
+                `Score: ${result.correct}/${result.total}` + (result.saved ? " (new high score saved!)" : "");
+        } else {
+            document.getElementById("quizResult").innerText = result.detail || "Error grading quiz.";
+        }
+    };
 
-    renderQuiz();
+    loadQuestions();
     </script>
+
+
 </body>
 </html>

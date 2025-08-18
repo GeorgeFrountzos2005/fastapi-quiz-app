@@ -202,7 +202,6 @@ def grade_quiz(
 
     return {"correct": correct, "total": total, "saved": saved}
 
-
 @app.post("/api/submit_score")
 async def submit_score(
     username: str = Body(...),

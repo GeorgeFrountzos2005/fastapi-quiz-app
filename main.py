@@ -114,42 +114,62 @@ async def login(
 
 @app.get("/api/questions")
 def get_questions(db: Session = Depends(get_db)):
-    # pull all questions
+    # Fetch all questions from DB
     rows = db.execute(questions.select()).fetchall()
-    if len(rows) < 50:
-        raise HTTPException(status_code=400, detail="Not enough questions in DB yet")
-    # build plain dicts and sample 50 unique
-    all_qs = [
-        {
-            "id": r.id,
-            "question": r.question,
-            "choices": json.loads(r.choices)
-            # NOTE: we do NOT include the answer here to keep it hidden
-        }
-        for r in rows
-    ]
-    selected = random.sample(all_qs, 50)
-    return {"questions": selected}
+    if not rows:
+        raise HTTPException(status_code=400, detail="No questions in DB yet")
 
-@app.get("/api/questions")
-def get_questions(db: Session = Depends(get_db)):
-    # Grab ALL questions
-    rows = db.execute(questions.select()).fetchall()
+    # Return up to 50 random questions
+    sample_size = min(50, len(rows))
+    picked = random.sample(rows, sample_size)
 
-    # Convert them into Python dicts
-    all_questions = []
-    for row in rows:
-        all_questions.append({
-            "id": row.id,
-            "question": row.question,
-            "choices": json.loads(row.choices),  # turn JSON string back into list
-            "answer": row.answer
-        })
+    return {
+        "questions": [
+            {
+                "id": r.id,
+                "question": r.question,
+                "choices": json.loads(r.choices),  # keep answers hidden
+            }
+            for r in picked
+        ]
+    }
 
-    # Pick 50 random ones
-    selected = random.sample(all_questions, min(50, len(all_questions)))
+################ TEMPORARY #########################
+@app.get("/api/dev/seed_more")  # TEMP: remove once you have real questions
+def seed_more_questions(db: Session = Depends(get_db)):
+    # current count
+    result = db.execute(select(func.count()).select_from(questions))
+    current = result.scalar() or 0
 
-    return {"questions": selected}
+    target = 60
+    to_add = max(0, target - current)
+
+    for _ in range(to_add):
+        a = random.randint(1, 40)
+        b = random.randint(1, 40)
+        correct = a + b
+
+        # Build 4 choices with the correct one included
+        opts = list({correct, correct + 1, max(0, correct - 1), correct + 2})
+        while len(opts) < 4:
+            opts.append(correct + random.randint(3, 6))
+            opts = list(dict.fromkeys(opts))  # ensure uniqueness
+        opts = opts[:4]
+        random.shuffle(opts)
+        answer_idx = opts.index(correct)
+
+        db.execute(
+            questions.insert().values(
+                question=f"What is {a} + {b}?",
+                choices=json.dumps([str(x) for x in opts]),
+                answer=answer_idx,
+            )
+        )
+
+    db.commit()
+    return {"added": to_add, "total": current + to_add}
+
+
 
 @app.post("/api/grade")
 def grade_quiz(

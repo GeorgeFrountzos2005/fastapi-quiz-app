@@ -134,40 +134,6 @@ def get_questions(db: Session = Depends(get_db)):
         ]
     }
 
-################ TEMPORARY #########################
-@app.get("/api/dev/seed_more")  # TEMP: remove once you have real questions
-def seed_more_questions(db: Session = Depends(get_db)):
-    # current count
-    result = db.execute(select(func.count()).select_from(questions))
-    current = result.scalar() or 0
-
-    target = 60
-    to_add = max(0, target - current)
-
-    for _ in range(to_add):
-        a = random.randint(1, 40)
-        b = random.randint(1, 40)
-        correct = a + b
-
-        # Build 4 choices with the correct one included
-        opts = list({correct, correct + 1, max(0, correct - 1), correct + 2})
-        while len(opts) < 4:
-            opts.append(correct + random.randint(3, 6))
-            opts = list(dict.fromkeys(opts))  # ensure uniqueness
-        opts = opts[:4]
-        random.shuffle(opts)
-        answer_idx = opts.index(correct)
-
-        db.execute(
-            questions.insert().values(
-                question=f"What is {a} + {b}?",
-                choices=json.dumps([str(x) for x in opts]),
-                answer=answer_idx,
-            )
-        )
-
-    db.commit()
-    return {"added": to_add, "total": current + to_add}
 
 
 

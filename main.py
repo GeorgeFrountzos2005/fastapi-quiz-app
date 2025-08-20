@@ -267,29 +267,45 @@ async def leaderboard(db: Session = Depends(get_db)):
 
 
 ###########NEW###############################
-@app.post("/api/admin/reseed_iq")
-def admin_reseed_iq(
-    key: str = Query(..., description="Admin key"),
-    db: Session = Depends(get_db)
+@app.api_route("/api/admin/reseed_iq", methods=["GET", "POST"])
+def reseed_iq(
+    key: str | None = Query(None),
+    body: dict | None = Body(None),
+    db: Session = Depends(get_db),
 ):
-    admin_key = os.environ.get("ADMIN_KEY")
-    if not admin_key or key != admin_key:
+    provided = key or (body and body.get("key"))
+    if provided != os.environ.get("ADMIN_KEY"):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    # wipe all questions
-    db.execute(delete(questions))
+    # wipe and reseed
+    db.execute(questions.delete())
 
-    # insert 200 IQ questions
-    for q in _make_iq_batch(200):
+    # example generator: make ~200 quick IQ-style arithmetic items
+    seed = []
+    import random, json
+    for _ in range(200):
+        a, b = random.randint(10, 40), random.randint(10, 40)
+        correct = a + b
+        wrongs = {correct + d for d in (-2, -1, 1, 2)}
+        choices = list({correct} | wrongs)
+        random.shuffle(choices)
+        answer = choices.index(correct)
+        seed.append({
+            "question": f"What is {a} + {b}?",
+            "choices": choices,
+            "answer": answer
+        })
+
+    for q in seed:
         db.execute(
             questions.insert().values(
                 question=q["question"],
                 choices=json.dumps(q["choices"]),
-                answer=q["answer"],
+                answer=q["answer"]
             )
         )
     db.commit()
-    return {"ok": True, "total": 200}
+    return {"ok": True, "total": len(seed)}
 ################################################
 
 

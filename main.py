@@ -1,8 +1,8 @@
 from typing import List, Dict
-from fastapi import FastAPI, HTTPException, Depends, Form, Body
+from fastapi import FastAPI, HTTPException, Depends, Form, Body, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlalchemy import Table, Column, Integer, String, Text,  select, func
+from sqlalchemy import Table, Column, Integer, String, Text,  select, func, delete
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import os
@@ -42,6 +42,91 @@ questions = Table(
 )
 
 metadata.create_all(bind=engine)
+
+#####NEW#########
+# ---------- IQ question generators + reseed helpers ----------
+def _mk_choices(correct: int) -> (list[str], int):
+    """Return 4 unique choices (as strings) including the correct answer, plus the index of the correct one."""
+    pool = {correct}
+    for delta in [1, -1, 2, -2, 3, 4, 5]:
+        pool.add(correct + delta)
+        if len(pool) >= 6:
+            break
+    opts = list(pool)[:4]
+    random.shuffle(opts)
+    return [str(x) for x in opts], opts.index(correct)
+
+def _arith_seq():
+    a = random.randint(1, 20)
+    d = random.randint(2, 9)
+    seq = [a + i * d for i in range(4)]
+    correct = a + 4 * d
+    q = f"Find the next number: {seq[0]}, {seq[1]}, {seq[2]}, {seq[3]}, ?"
+    choices, idx = _mk_choices(correct)
+    return {"question": q, "choices": choices, "answer": idx}
+
+def _geom_seq():
+    a = random.randint(1, 5)
+    r = random.choice([2, 3])
+    seq = [a * (r ** i) for i in range(4)]
+    correct = a * (r ** 4)
+    q = f"Find the next number: {seq[0]}, {seq[1]}, {seq[2]}, {seq[3]}, ?"
+    choices, idx = _mk_choices(correct)
+    return {"question": q, "choices": choices, "answer": idx}
+
+def _fib_like():
+    x = random.randint(1, 5)
+    y = random.randint(1, 5)
+    seq = [x, y]
+    for _ in range(2, 5):
+        seq.append(seq[-1] + seq[-2])
+    q = f"Find the next number: {seq[0]}, {seq[1]}, {seq[2]}, {seq[3]}, {seq[4]}, ?"
+    correct = seq[-1] + seq[-2]
+    choices, idx = _mk_choices(correct)
+    return {"question": q, "choices": choices, "answer": idx}
+
+def _odd_one_out():
+    prop = random.choice(["even", "odd", "div3", "div5"])
+    base = []
+    while len(base) < 3:
+        n = random.randint(10, 60)
+        ok = (
+            (prop == "even" and n % 2 == 0) or
+            (prop == "odd" and n % 2 == 1) or
+            (prop == "div3" and n % 3 == 0) or
+            (prop == "div5" and n % 5 == 0)
+        )
+        if ok and n not in base:
+            base.append(n)
+    # outlier
+    while True:
+        m = random.randint(10, 60)
+        ok = not (
+            (prop == "even" and m % 2 == 0) or
+            (prop == "odd" and m % 2 == 1) or
+            (prop == "div3" and m % 3 == 0) or
+            (prop == "div5" and m % 5 == 0)
+        )
+        if ok and m not in base:
+            break
+    items = base + [m]
+    random.shuffle(items)
+    q = f"Odd one out: {items[0]}, {items[1]}, {items[2]}, {items[3]}"
+    correct_idx = items.index(m)
+    return {"question": q, "choices": [str(x) for x in items], "answer": correct_idx}
+
+GENS = [_arith_seq, _geom_seq, _fib_like, _odd_one_out]
+
+def _make_iq_batch(n: int):
+    batch = []
+    for _ in range(n):
+        q = random.choice(GENS)()
+        batch.append(q)
+    return batch
+# --------------------------------------------------------------
+
+
+
 
 
 
@@ -179,6 +264,35 @@ async def submit_score(
 async def leaderboard(db: Session = Depends(get_db)):
     result = db.execute(users.select().order_by(users.c.score.desc())).fetchall()
     return [{"username": r.username, "score": r.score} for r in result]
+
+
+###########NEW###############################
+@app.post("/api/admin/reseed_iq")
+def admin_reseed_iq(
+    key: str = Query(..., description="Admin key"),
+    db: Session = Depends(get_db)
+):
+    admin_key = os.environ.get("ADMIN_KEY")
+    if not admin_key or key != admin_key:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # wipe all questions
+    db.execute(delete(questions))
+
+    # insert 200 IQ questions
+    for q in _make_iq_batch(200):
+        db.execute(
+            questions.insert().values(
+                question=q["question"],
+                choices=json.dumps(q["choices"]),
+                answer=q["answer"],
+            )
+        )
+    db.commit()
+    return {"ok": True, "total": 200}
+################################################
+
+
 
 # Only for local testing. Railway will use your "Start Command".
 if __name__ == "__main__":

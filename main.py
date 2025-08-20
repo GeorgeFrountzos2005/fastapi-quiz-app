@@ -42,37 +42,8 @@ questions = Table(
 )
 
 metadata.create_all(bind=engine)
-# --- simple auto-seed so you can test immediately (remove later) ---
-def seed_questions_if_empty():
-    with SessionLocal() as db:
-        result = db.execute(select(func.count()).select_from(questions))
-        cnt = result.scalar() or 0
-        if not cnt or cnt == 0:
-            seed = [
-                {"question": "What is 2 + 2?", "choices": ["3","4","5","6"], "answer": 1},
-                {"question": "Capital of France?", "choices": ["Berlin","Madrid","Paris","Rome"], "answer": 2},
-                {"question": "Which is a mammal?", "choices": ["Shark","Dolphin","Trout","Salmon"], "answer": 1},
-                {"question": "H2O is…", "choices": ["Oxygen","Hydrogen","Water","Helium"], "answer": 2},
-                {"question": "5 * 6 = ?", "choices": ["28","29","30","31"], "answer": 2},
-                {"question": "Largest planet?", "choices": ["Earth","Mars","Jupiter","Venus"], "answer": 2},
-                {"question": "Binary of 2?", "choices": ["10","11","01","00"], "answer": 0},
-                {"question": "HTML stands for?", "choices": ["Hyperlinks and Text Markup Language","Home Tool Markup Language","HyperText Markup Language","Hyper Tool Multi Language"], "answer": 2},
-                {"question": "FastAPI is a…", "choices": ["DB","Web framework","OS","Browser"], "answer": 1},
-                {"question": "Year has how many months?", "choices": ["10","11","12","13"], "answer": 2}
-            ]
-            for q in seed:
-                db.execute(
-                    questions.insert().values(
-                        question=q["question"],
-                        choices=json.dumps(q["choices"]),
-                        answer=q["answer"]
-                    )
-                )
-            db.commit()
 
-# call it at startup
-seed_questions_if_empty()
-# --- end auto-seed ---
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -133,8 +104,6 @@ def get_questions(db: Session = Depends(get_db)):
             for r in picked
         ]
     }
-
-
 
 
 @app.post("/api/grade")

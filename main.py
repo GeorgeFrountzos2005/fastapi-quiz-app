@@ -308,6 +308,40 @@ def reseed_iq(
     return {"ok": True, "total": len(seed)}
 ################################################
 
+# --- Bulk seed IQ questions (POST JSON) ---
+from pydantic import BaseModel, Field
+from typing import List
+
+class SeedQuestion(BaseModel):
+    question: str
+    choices: List[str] = Field(min_items=4, max_items=4)
+    answer: int  # 0..3
+
+class SeedPayload(BaseModel):
+    key: str
+    questions: List[SeedQuestion]
+
+@app.post("/api/admin/seed_bulk")
+def seed_bulk(payload: SeedPayload, db: Session = Depends(get_db)):
+    if payload.key != os.environ.get("ADMIN_KEY"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # wipe existing
+    db.execute(questions.delete())
+
+    # insert new
+    for q in payload.questions:
+        db.execute(
+            questions.insert().values(
+                question=q.question,
+                choices=json.dumps(q.choices),
+                answer=q.answer
+            )
+        )
+    db.commit()
+    return {"ok": True, "total": len(payload.questions)}
+##############################################################
+
 
 
 # Only for local testing. Railway will use your "Start Command".

@@ -60,3 +60,67 @@ h1 { margin-bottom: 0.5rem; color: #333; }
 @media (max-width: 420px) {
   .button-group { grid-template-columns: 1fr; }
 }
+
+/* ===== Auth forms ===== */
+.container.auth {
+  width: 420px;
+  max-width: 92vw;
+  text-align: left;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+  margin-top: 1rem;
+}
+
+.form label span {
+  display: block;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.form input:focus {
+  border-color: #4facfe;
+  box-shadow: 0 0 0 3px rgba(79,172,254,0.2);
+}
+
+.form .btn {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.msg {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  min-height: 1.1em;
+}
+
+.msg.success { color: #2e7d32; }
+.msg.error   { color: #c62828; }
+
+.links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.links a {
+  color: #4b6cb7;
+  text-decoration: none;
+}
+
+.links a:hover {
+  text-decoration: underline;
+}

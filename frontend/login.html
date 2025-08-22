@@ -1,35 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Login • IQ Quiz</title>
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <h2>Login</h2>
-    <form id="loginForm">
-        <input type="text" name="username" placeholder="Username" required><br>
-        <input type="password" name="password" placeholder="Password" required><br>
-        <button type="submit">Login</button>
+  <div class="container auth">
+    <h1>Welcome back</h1>
+    <p class="subtitle">Log in to take the quiz and track your score.</p>
+
+    <form id="loginForm" class="form">
+      <label>
+        <span>Username</span>
+        <input type="text" name="username" placeholder="Your username" required />
+      </label>
+
+      <label>
+        <span>Password</span>
+        <input type="password" name="password" placeholder="Your password" required />
+      </label>
+
+      <button id="loginBtn" type="submit" class="btn">Login</button>
+      <p id="loginMsg" class="msg" aria-live="polite"></p>
     </form>
-    <p id="output"></p>
-    <a href="register.html">Don’t have an account? Register</a>
-    <script>
-    document.querySelector("form").onsubmit = async (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const res = await fetch("/api/login", {
-            method: "POST",
-            body: new FormData(form),
+
+    <div class="links">
+      <a href="/static/register.html">Don’t have an account? Register</a>
+      <a href="/">← Back to Home</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const btn  = document.getElementById('loginBtn');
+    const msg  = document.getElementById('loginMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          body: new FormData(form)
         });
+
         const data = await res.json();
-        document.getElementById("output").innerText = data.message || data.detail;
-        if (res.ok) {
-            localStorage.setItem("username", form.username.value);
-            // Optional: alert("Login successful! Redirecting to quiz...");
-            setTimeout(() => window.location = "/static/quiz.html", 1000);
+
+        if (!res.ok) {
+          msg.textContent = data.detail || 'Login failed.';
+          msg.className = 'msg error';
+          btn.disabled = false;
+          return;
         }
-    };
-</script>
+
+        // success
+        localStorage.setItem('username', form.username.value);
+        msg.textContent = 'Login successful! Redirecting…';
+        msg.className = 'msg success';
+        setTimeout(() => {
+          window.location.href = '/static/quiz.html';
+        }, 700);
+      } catch (err) {
+        msg.textContent = 'Network error. Please try again.';
+        msg.className = 'msg error';
+        btn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>

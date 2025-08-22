@@ -1,71 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Quiz</title>
-    <link rel="stylesheet" href="/static/style.css">
-
+  <meta charset="UTF-8" />
+  <title>Quiz • IQ Test</title>
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <h2>Quiz Time!</h2>
-    <div id="quizContainer"></div>
-    <button id="submitQuiz" style="display:none;">Submit Quiz</button>
-    <p id="quizResult"></p>
-    <a href="/static/leaderboard.html">Leaderboard</a>
-    <script>
+  <div class="container quiz">
+    <header class="quiz-header">
+      <h1>IQ Quiz</h1>
+      <div class="user-chip">
+        <span id="who"></span>
+        <a id="logout" href="#" class="chip-link">Log out</a>
+      </div>
+    </header>
+
+    <p class="subtitle">Answer as many questions as you can. Your highest score will be saved!</p>
+    <div id="status" class="msg" aria-live="polite">Loading questions…</div>
+
+    <!-- Existing dynamic questions container -->
+    <div id="quiz-container" class="quiz-grid"></div>
+
+    <div class="quiz-actions" hidden id="actions">
+      <button id="submitBtn" class="btn">Submit Answers</button>
+      <a href="/static/leaderboard.html" class="btn secondary">Leaderboard</a>
+    </div>
+
+    <div id="result" class="result-card" hidden></div>
+  </div>
+
+  <script>
+    const username = localStorage.getItem('username');
+    if (!username) window.location.href = '/static/login.html';
+
+    const whoEl = document.getElementById('who');
+    const logoutEl = document.getElementById('logout');
+    whoEl.textContent = `Logged in as ${username}`;
+    logoutEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('username');
+      window.location.href = '/';
+    });
+
+    const statusEl = document.getElementById('status');
+    const container = document.getElementById('quiz-container');
+    const actionsEl = document.getElementById('actions');
+    const resultEl = document.getElementById('result');
+    const submitBtn = document.getElementById('submitBtn');
+
     let questions = [];
-    let userAnswers = [];
 
     async function loadQuestions() {
-        const res = await fetch("/api/questions");
+      statusEl.textContent = 'Loading questions…';
+      container.innerHTML = '';
+      actionsEl.hidden = true;
+      resultEl.hidden = true;
+
+      try {
+        const res = await fetch('/api/questions');
         const data = await res.json();
-        questions = data.questions; // [{id, question, choices}]
-        renderQuiz();
-    }
 
-    function renderQuiz() {
-        const container = document.getElementById("quizContainer");
-        container.innerHTML = "";
-        questions.forEach((q, idx) => {
-            let html = `<div><strong>Q${idx+1}:</strong> ${q.question}<br>`;
-            q.choices.forEach((choice, cidx) => {
-                html += `<label><input type="radio" name="q${idx}" value="${cidx}"> ${choice}</label> `;
-            });
-            html += "</div><br>";
-            container.innerHTML += html;
-        });
-        document.getElementById("submitQuiz").style.display = "block";
-    }
-
-    document.getElementById("submitQuiz").onclick = async function() {
-        // collect answers
-        userAnswers = questions.map((q, idx) => {
-            const selected = document.querySelector(`input[name="q${idx}"]:checked`);
-            return { id: q.id, choice: selected ? parseInt(selected.value) : -1 };
-        });
-
-        const username = localStorage.getItem("username");
-        if (!username) {
-            document.getElementById("quizResult").innerText = "You must be logged in.";
-            return;
+        if (!res.ok || !data.questions || data.questions.length === 0) {
+          statusEl.textContent = data.detail || 'No questions available.';
+          statusEl.className = 'msg error';
+          return;
         }
 
-        // POST to /api/grade (server checks answers & saves best score)
-        const res = await fetch("/api/grade", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ username, answers: userAnswers })
+        questions = data.questions;
+        renderQuestions();
+        actionsEl.hidden = false;
+        statusEl.textContent = '';
+      } catch (err) {
+        statusEl.textContent = 'Failed to fetch questions.';
+        statusEl.className = 'msg error';
+      }
+    }
+
+    function renderQuestions() {
+      container.innerHTML = '';
+      questions.forEach((q, i) => {
+        const card = document.createElement('fieldset');
+        card.className = 'q-card';
+
+        const legend = document.createElement('legend');
+        legend.textContent = `${i + 1}. ${q.question}`;
+        card.appendChild(legend);
+
+        q.choices.forEach((choice, idx) => {
+          const row = document.createElement('label');
+          row.className = 'choice-row';
+
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = `q${q.id}`;
+          input.value = idx;
+
+          const span = document.createElement('span');
+          span.textContent = choice;
+
+          row.appendChild(input);
+          row.appendChild(span);
+          card.appendChild(row);
         });
-        const result = await res.json();
-        if (res.ok) {
-            document.getElementById("quizResult").innerText =
-                `Score: ${result.correct}/${result.total}` + (result.saved ? " (new high score saved!)" : "");
-        } else {
-            document.getElementById("quizResult").innerText = result.detail || "Error grading quiz.";
-        }
-    };
+
+        container.appendChild(card);
+      });
+    }
+
+    submitBtn.addEventListener('click', async () => {
+      const answers = [];
+      questions.forEach(q => {
+        const sel = document.querySelector(`input[name="q${q.id}"]:checked`);
+        if (sel) answers.push({ id: q.id, choice: Number(sel.value) });
+      });
+
+      statusEl.textContent = 'Submitting…';
+      try {
+        const res = await fetch('/api/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, answers })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail);
+
+        resultEl.innerHTML = `
+          <div class="score">
+            <div class="score-big">${data.correct} / ${data.total}</div>
+            <div class="score-sub">${data.saved ? 'New high score saved!' : 'Score submitted.'}</div>
+          </div>`;
+        resultEl.hidden = false;
+        statusEl.textContent = '';
+      } catch (err) {
+        statusEl.textContent = err.message || 'Error submitting answers.';
+        statusEl.className = 'msg error';
+      }
+    });
 
     loadQuestions();
-    </script>
+  </script>
 </body>
 </html>

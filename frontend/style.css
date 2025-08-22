@@ -182,3 +182,84 @@ h1 { margin-bottom: 0.5rem; color: #333; }
 }
 
 
+
+
+
+/* Quiz page styling */
+.container.quiz {
+  width: 900px;
+  max-width: 95vw;
+}
+
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-chip {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  background: #f2f7ff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #cfe3ff;
+  font-size: 0.95rem;
+}
+
+.quiz-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.q-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.q-card legend {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.choice-row {
+  display: flex;
+  gap: 8px;
+  padding: 6px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.choice-row:hover {
+  background: #f8fbff;
+}
+
+.quiz-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.result-card {
+  margin-top: 14px;
+  background: #f7fff6;
+  border: 1px solid #bfe6bf;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.score-big {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2e7d32;
+}
+.score-sub {
+  margin-top: 6px;
+  color: #2e7d32;
+}

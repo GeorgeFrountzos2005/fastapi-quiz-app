@@ -1,31 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Leaderboard</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Leaderboard • IQ Quiz</title>
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <h2>Leaderboard</h2>
-    <table id="leaderboardTable" border="1">
-        <tr><th>Rank</th><th>Username</th><th>Score</th></tr>
-    </table>
-    <a href="/static/quiz.html">Back to Quiz</a>
-    <a href="/static/index.html">Home</a>
-    <script>
-    fetch("/api/leaderboard")
-      .then(r => r.json())
-      .then(data => {
-        let rows = "";
-        data.forEach((user, i) => {
-            rows += `<tr>
-                        <td>${i+1}</td>
-                        <td>${user.username}</td>
-                        <td>${user.score}</td>
-                    </tr>`;
+  <div class="container board">
+    <h1>Leaderboard</h1>
+    <p class="subtitle">Top scores from all players.</p>
+
+    <div class="board-actions">
+      <a class="btn" href="/">Home</a>
+      <a class="btn secondary" href="/static/quiz.html">Take the Quiz</a>
+      <button id="refreshBtn" class="btn leaderboard" type="button">Refresh</button>
+    </div>
+
+    <div id="status" class="msg" aria-live="polite"></div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:4ch;">#</th>
+            <th>Username</th>
+            <th style="width:10ch;">Score</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- rows injected here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const tbody = document.getElementById('tbody');
+    const statusEl = document.getElementById('status');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const currentUser = localStorage.getItem('username');
+
+    async function loadLeaderboard() {
+      statusEl.textContent = 'Loading…';
+      tbody.innerHTML = '';
+      try {
+        const res = await fetch('/api/leaderboard');
+        const data = await res.json();
+        if (!res.ok) {
+          statusEl.textContent = data.detail || 'Failed to load leaderboard.';
+          statusEl.className = 'msg error';
+          return;
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+          statusEl.textContent = 'No scores yet. Be the first!';
+          statusEl.className = 'msg';
+          return;
+        }
+
+        statusEl.textContent = '';
+        statusEl.className = 'msg';
+
+        data.forEach((row, idx) => {
+          const tr = document.createElement('tr');
+          if (currentUser && row.username === currentUser) {
+            tr.classList.add('me');
+            tr.title = 'This is you';
+          }
+
+          const rank = document.createElement('td');
+          rank.textContent = idx + 1;
+
+          const user = document.createElement('td');
+          user.textContent = row.username;
+
+          const score = document.createElement('td');
+          score.textContent = row.score ?? 0;
+
+          tr.append(rank, user, score);
+          tbody.appendChild(tr);
         });
-        document.getElementById("leaderboardTable").innerHTML += rows;
-      });
-    </script>
+      } catch (e) {
+        statusEl.textContent = 'Network error. Please try again.';
+        statusEl.className = 'msg error';
+      }
+    }
+
+    refreshBtn.addEventListener('click', loadLeaderboard);
+    loadLeaderboard();
+  </script>
 </body>
 </html>

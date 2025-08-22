@@ -124,3 +124,59 @@ h1 { margin-bottom: 0.5rem; color: #333; }
 .links a:hover {
   text-decoration: underline;
 }
+
+
+
+/* ===== Leaderboard table ===== */
+.container.board {
+  width: 680px;
+  max-width: 94vw;
+  text-align: left;
+}
+
+.board-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.table-wrap {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e7e7e7;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.98rem;
+}
+
+.table thead th {
+  background: #f6f8fb;
+  color: #444;
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.table tbody tr:hover {
+  background: #fafcff;
+}
+
+.table tbody tr.me {
+  background: #eef7ff;
+  font-weight: 600;
+}
+
+.table tbody tr.me:hover {
+  background: #e7f2ff;
+}

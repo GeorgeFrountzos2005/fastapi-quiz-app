@@ -6,3 +6,57 @@ button {
     padding: 0.5rem 1rem;
     margin-top: 1rem;
 }
+
+/* ===== Home/Card + Buttons (polish) ===== */
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.container {
+  text-align: center;
+  background: #fff;
+  padding: 3rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  width: 350px;
+  max-width: 92vw;
+}
+
+h1 { margin-bottom: 0.5rem; color: #333; }
+.subtitle { margin-bottom: 2rem; color: #666; }
+
+.button-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  background: #4facfe;
+  color: white;
+  font-weight: bold;
+  transition: transform 0.06s ease, background 0.25s ease;
+  text-align: center;
+}
+.btn:hover { background: #00c6ff; transform: translateY(-1px); }
+
+.btn.secondary { background: #43e97b; }
+.btn.secondary:hover { background: #34ce6b; }
+
+.btn.leaderboard { background: #7b61ff; }
+.btn.leaderboard:hover { background: #6a50f3; }
+
+/* Small screens */
+@media (max-width: 420px) {
+  .button-group { grid-template-columns: 1fr; }
+}

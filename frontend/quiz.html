@@ -1,207 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Quiz • IQ Quiz</title>
-  <link rel="stylesheet" href="/static/style.css" />
+    <meta charset="UTF-8">
+    <title>Quiz</title>
+    <link rel="stylesheet" href="/static/style.css">
+
 </head>
 <body>
-  <div class="container quiz">
-    <div class="quiz-header">
-      <h1>Quiz</h1>
-      <div class="user-chip">
-        <span id="who"></span>
-        <a id="logout" href="#" class="chip-link">Log out</a>
-      </div>
-    </div>
-
-    <p class="subtitle">Answer all 10 questions, then submit to see your score.</p>
-
-    <div id="status" class="msg" aria-live="polite">Loading questions…</div>
-
-    <form id="quizForm" class="quiz-grid" hidden></form>
-
-    <div class="quiz-actions" hidden id="actions">
-      <button id="submitBtn" type="button" class="btn">Submit Answers</button>
-      <button id="reloadBtn" type="button" class="btn secondary">New 10 Questions</button>
-      <a href="/static/leaderboard.html" class="btn leaderboard">Leaderboard</a>
-    </div>
-
-    <div id="result" class="result-card" hidden></div>
-  </div>
-
-  <script>
-    // --- Gate: require login ---
-    const username = localStorage.getItem('username');
-    if (!username) {
-      window.location.href = '/static/login.html';
-    }
-
-    // UI refs
-    const whoEl = document.getElementById('who');
-    const logoutEl = document.getElementById('logout');
-    const statusEl = document.getElementById('status');
-    const formEl = document.getElementById('quizForm');
-    const resultEl = document.getElementById('result');
-    const actionsEl = document.getElementById('actions');
-    const submitBtn = document.getElementById('submitBtn');
-    const reloadBtn = document.getElementById('reloadBtn');
-
-    whoEl.textContent = username ? `Logged in as ${username}` : '';
-
-    logoutEl.addEventListener('click', (e) => {
-      e.preventDefault();
-      localStorage.removeItem('username');
-      window.location.href = '/';
-    });
-
-    // Utility: shuffle array (Fisher–Yates)
-    function shuffle(arr) {
-      const a = arr.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    // Load 10 questions from backend
-    let currentQuestions = [];
+    <h2>Quiz Time!</h2>
+    <div id="quizContainer"></div>
+    <button id="submitQuiz" style="display:none;">Submit Quiz</button>
+    <p id="quizResult"></p>
+    <a href="/static/leaderboard.html">Leaderboard</a>
+    <script>
+    let questions = [];
+    let userAnswers = [];
 
     async function loadQuestions() {
-      statusEl.textContent = 'Loading questions…';
-      formEl.hidden = true;
-      actionsEl.hidden = true;
-      resultEl.hidden = true;
-      formEl.innerHTML = '';
-
-      try {
-        const res = await fetch('/api/questions');
+        const res = await fetch("/api/questions");
         const data = await res.json();
-
-        if (!res.ok) {
-          statusEl.textContent = data.detail || 'Failed to load questions.';
-          statusEl.className = 'msg error';
-          return;
-        }
-
-        if (!data.questions || data.questions.length === 0) {
-          statusEl.textContent = 'No questions available.';
-          statusEl.className = 'msg';
-          return;
-        }
-
-        // Shuffle the returned set (up to 50) and pick the first 10
-        currentQuestions = shuffle(data.questions).slice(0, 10);
-
-        // Render
-        currentQuestions.forEach((q, idx) => {
-          const card = document.createElement('fieldset');
-          card.className = 'q-card';
-
-          const legend = document.createElement('legend');
-          legend.textContent = `Q${idx + 1}. ${q.question}`;
-          card.appendChild(legend);
-
-          q.choices.forEach((choiceText, cIdx) => {
-            const row = document.createElement('label');
-            row.className = 'choice-row';
-
-            const input = document.createElement('input');
-            input.type = 'radio';
-            input.name = `q${idx}`;
-            input.value = String(cIdx);
-
-            const span = document.createElement('span');
-            span.textContent = choiceText;
-
-            row.appendChild(input);
-            row.appendChild(span);
-            card.appendChild(row);
-          });
-
-          formEl.appendChild(card);
-        });
-
-        statusEl.textContent = '';
-        statusEl.className = 'msg';
-        formEl.hidden = false;
-        actionsEl.hidden = false;
-
-      } catch (err) {
-        statusEl.textContent = 'Network error. Please try again.';
-        statusEl.className = 'msg error';
-      }
+        questions = data.questions; // [{id, question, choices}]
+        renderQuiz();
     }
 
-    // Collect answers and submit to /api/grade
-    async function submitQuiz() {
-      // Ensure all answered
-      const answers = [];
-      let unanswered = 0;
+    function renderQuiz() {
+        const container = document.getElementById("quizContainer");
+        container.innerHTML = "";
+        questions.forEach((q, idx) => {
+            let html = `<div><strong>Q${idx+1}:</strong> ${q.question}<br>`;
+            q.choices.forEach((choice, cidx) => {
+                html += `<label><input type="radio" name="q${idx}" value="${cidx}"> ${choice}</label> `;
+            });
+            html += "</div><br>";
+            container.innerHTML += html;
+        });
+        document.getElementById("submitQuiz").style.display = "block";
+    }
 
-      currentQuestions.forEach((q, idx) => {
-        const sel = formEl.querySelector(`input[name="q${idx}"]:checked`);
-        if (!sel) {
-          unanswered++;
+    document.getElementById("submitQuiz").onclick = async function() {
+        // collect answers
+        userAnswers = questions.map((q, idx) => {
+            const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+            return { id: q.id, choice: selected ? parseInt(selected.value) : -1 };
+        });
+
+        const username = localStorage.getItem("username");
+        if (!username) {
+            document.getElementById("quizResult").innerText = "You must be logged in.";
+            return;
+        }
+
+        // POST to /api/grade (server checks answers & saves best score)
+        const res = await fetch("/api/grade", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ username, answers: userAnswers })
+        });
+        const result = await res.json();
+        if (res.ok) {
+            document.getElementById("quizResult").innerText =
+                `Score: ${result.correct}/${result.total}` + (result.saved ? " (new high score saved!)" : "");
         } else {
-          answers.push({ id: q.id, choice: Number(sel.value) });
+            document.getElementById("quizResult").innerText = result.detail || "Error grading quiz.";
         }
-      });
+    };
 
-      if (unanswered > 0) {
-        statusEl.textContent = `You have ${unanswered} unanswered question${unanswered>1?'s':''}.`;
-        statusEl.className = 'msg error';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-
-      statusEl.textContent = 'Submitting…';
-      statusEl.className = 'msg';
-
-      submitBtn.disabled = true;
-
-      try {
-        const res = await fetch('/api/grade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, answers })
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          statusEl.textContent = data.detail || 'Failed to grade.';
-          statusEl.className = 'msg error';
-          submitBtn.disabled = false;
-          return;
-        }
-
-        // Show result
-        resultEl.innerHTML = `
-          <div class="score">
-            <div class="score-big">${data.correct} / ${data.total}</div>
-            <div class="score-sub">${data.saved ? 'New high score saved!' : 'Score submitted.'}</div>
-          </div>
-        `;
-        resultEl.hidden = false;
-        statusEl.textContent = 'Done!';
-        statusEl.className = 'msg';
-        // Optionally disable all radios after submit
-        formEl.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
-      } catch (e) {
-        statusEl.textContent = 'Network error while grading.';
-        statusEl.className = 'msg error';
-      } finally {
-        submitBtn.disabled = false;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-
-    submitBtn.addEventListener('click', submitQuiz);
-    reloadBtn.addEventListener('click', loadQuestions);
-
-    // Start
     loadQuestions();
-  </script>
+    </script>
 </body>
 </html>

@@ -266,47 +266,6 @@ async def leaderboard(db: Session = Depends(get_db)):
     return [{"username": r.username, "score": r.score} for r in result]
 
 
-###########NEW###############################
-@app.api_route("/api/admin/reseed_iq", methods=["GET", "POST"])
-def reseed_iq(
-    key: str | None = Query(None),
-    body: dict | None = Body(None),
-    db: Session = Depends(get_db),
-):
-    provided = key or (body and body.get("key"))
-    if provided != os.environ.get("ADMIN_KEY"):
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    # wipe and reseed
-    db.execute(questions.delete())
-
-    # example generator: make ~200 quick IQ-style arithmetic items
-    seed = []
-    import random, json
-    for _ in range(200):
-        a, b = random.randint(10, 40), random.randint(10, 40)
-        correct = a + b
-        wrongs = {correct + d for d in (-2, -1, 1, 2)}
-        choices = list({correct} | wrongs)
-        random.shuffle(choices)
-        answer = choices.index(correct)
-        seed.append({
-            "question": f"What is {a} + {b}?",
-            "choices": choices,
-            "answer": answer
-        })
-
-    for q in seed:
-        db.execute(
-            questions.insert().values(
-                question=q["question"],
-                choices=json.dumps(q["choices"]),
-                answer=q["answer"]
-            )
-        )
-    db.commit()
-    return {"ok": True, "total": len(seed)}
-################################################
 
 # --- Bulk seed IQ questions (POST JSON) ---
 from pydantic import BaseModel, Field

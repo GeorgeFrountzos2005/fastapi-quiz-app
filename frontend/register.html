@@ -1,32 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Register</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Register • IQ Quiz</title>
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <h2>Register</h2>
-    <form id="registerForm">
-        <input type="text" name="username" placeholder="Username" required><br>
-        <input type="password" name="password" placeholder="Password" required><br>
-        <button type="submit">Register</button>
+  <div class="container auth">
+    <h1>Create Account</h1>
+    <p class="subtitle">Join to track your IQ quiz scores.</p>
+
+    <form id="registerForm" class="form">
+      <label>
+        <span>Username</span>
+        <input type="text" name="username" placeholder="Choose a username" minlength="3" required />
+      </label>
+
+      <label>
+        <span>Password</span>
+        <input type="password" name="password" placeholder="Choose a password" minlength="5" required />
+      </label>
+
+      <button id="registerBtn" type="submit" class="btn">Register</button>
+      <p id="registerMsg" class="msg" aria-live="polite"></p>
     </form>
-    <p id="regResult"></p>
-    <a href="login.html">Already have an account? Login</a>
-    <script>
-    document.getElementById("registerForm").onsubmit = async function(e) {
-        e.preventDefault();
-        const form = e.target;
-        const data = new FormData(form);
-        const res = await fetch("/api/register", {
-            method: "POST",
-            body: data
+
+    <div class="links">
+      <a href="/static/login.html">Already have an account? Login</a>
+      <a href="/">← Back to Home</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    const btn = document.getElementById('registerBtn');
+    const msg = document.getElementById('registerMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          body: new FormData(form)
         });
-        const json = await res.json();
-        document.getElementById("regResult").innerText = json.message || json.detail;
-        if (res.ok) setTimeout(()=>window.location='login.html', 1000);
-    }
-    </script>
+        const data = await res.json();
+
+        if (!res.ok) {
+          msg.textContent = data.detail || 'Registration failed.';
+          msg.className = 'msg error';
+          btn.disabled = false;
+          return;
+        }
+
+        msg.textContent = 'Account created! Redirecting to login…';
+        msg.className = 'msg success';
+        setTimeout(() => {
+          window.location.href = '/static/login.html';
+        }, 800);
+      } catch (err) {
+        msg.textContent = 'Network error. Try again.';
+        msg.className = 'msg error';
+        btn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
